@@ -1,5 +1,3 @@
-from functools import total_ordering
-from turtle import position
 import numpy as np
 import torch
 import torch.nn as nn

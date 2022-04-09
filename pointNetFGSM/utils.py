@@ -1,5 +1,3 @@
-from cProfile import label
-from re import I
 import torchvision.transforms as transforms
 from transforms import Normalize, PointSampler, ToTensor
 import matplotlib.pyplot as plt
