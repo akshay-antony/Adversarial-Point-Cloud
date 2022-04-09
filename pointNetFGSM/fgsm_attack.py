@@ -14,6 +14,7 @@ import argparse
 import sklearn
 from sklearn.metrics import recall_score, precision_score, confusion_matrix
 from tqdm import tqdm
+from utils import plot_class_wise_scores
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -89,8 +90,8 @@ if __name__ == '__main__':
     total_targets = total_targets.detach().cpu().numpy()
     total_preds = total_preds.detach().cpu().numpy()
     confus_mat = confusion_matrix(total_targets, total_preds)
-    recall_sco = recall_score(total_targets, total_preds, average='macro')
-    pre_sco = precision_score(total_targets, total_preds, average='micro')
-    print(confus_mat)
-    print(recall_sco, pre_sco)
+    recall_sco = recall_score(total_targets, total_preds, average=None)
+    precision_sco = precision_score(total_targets, total_preds, average=None)
     print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
+    plot_class_wise_scores(inv_classes, recall_sco, "recall scores")
+    plot_class_wise_scores(inv_classes, precision_sco, "precision scores")

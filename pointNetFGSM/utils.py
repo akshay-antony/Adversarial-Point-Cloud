@@ -1,5 +1,9 @@
+from cProfile import label
+from re import I
 import torchvision.transforms as transforms
 from transforms import Normalize, PointSampler, ToTensor
+import matplotlib.pyplot as plt
+import numpy as np
 
 def read_off(file):
     if 'OFF' != file.readline().strip():
@@ -15,5 +19,16 @@ def default_transforms():
                                 Normalize(),
                                 ToTensor()
                               ])
+
+def plot_class_wise_scores(class_names, scores, score_name):
+    fig, ax = plt.subplots(1,1)
+    x_axis = np.arange(scores.shape[0])
+    for i in range(scores.shape[0]):
+        ax.bar([x_axis[i]], [scores[i]], label=class_names[i])
+    ax.set_xlabel("class number")
+    ax.set_ylabel(score_name)
+    plt.legend(loc=(1.04,0))
+    plt.show()
+
 if __name__ == '__main__':
     pass
