@@ -34,6 +34,7 @@ class PointCloudData(Dataset):
         pcd_path = self.files[idx]['pcd_path']
         category = self.files[idx]['category']
         with open(pcd_path, 'r') as f:
+            #print(pcd_path)
             pointcloud = self.__preproc__(f)
         return {'pointcloud': pointcloud, 
                 'category': self.classes[category]}

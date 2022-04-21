@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    path = Path("ModelNet10")
+    path = Path("ModelNet40")
     train_transforms = transforms.Compose([
                     PointSampler(1024),
                     Normalize(),
@@ -54,11 +54,11 @@ if __name__ == '__main__':
                     ToTensor()
                     ])
 
-    test_dataset = PointCloudData(path, True, "test", train_transforms)
-    model = PointNet()
-    model = model.train()
+    test_dataset = PointCloudData(path, True, "test")
+    model = PointNet(classes=40)
+    model = model.eval()
     model = model.to(device)
-    model.load_state_dict(torch.load("./save.pth"))
+    model.load_state_dict(torch.load("./model.pth"))
     fgsm_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     criterion = nn.NLLLoss()
     inv_classes = {i: cat for cat, i in test_dataset.classes.items()};
@@ -67,6 +67,7 @@ if __name__ == '__main__':
     total_preds = torch.zeros((0))
     total_accu = 0
     total_data_no = 0
+    args.epsilon = 0
 
     print("Attacking the pointnet using FGSM with epsilon ", args.epsilon)
     for i, data in enumerate(tqdm(fgsm_dataloader, position=0, leave=False)):
@@ -75,7 +76,6 @@ if __name__ == '__main__':
         input_cloud = input_cloud.type(torch.FloatTensor)
         input_cloud = input_cloud.to(device)
         labels = labels.to(device)
-        torch.cuda.empty_cache()
         preds = attack(model, criterion, input_cloud, labels, eps=args.epsilon)
         
         acc = torch.sum(preds == labels) / preds.shape[0]
