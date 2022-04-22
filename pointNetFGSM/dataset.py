@@ -20,6 +20,7 @@ class PointCloudData(Dataset):
                     sample['pcd_path'] = new_dir/file
                     sample['category'] = category
                     self.files.append(sample)
+        print("Data Loading Complete")
 
     def __len__(self):
         return len(self.files)

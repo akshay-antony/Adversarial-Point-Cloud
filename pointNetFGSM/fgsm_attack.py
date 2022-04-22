@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import torchvision.transforms as tt
+import torchvision.transforms as transforms
 from transforms import Normalize, PointSampler, RandomNoise, RandRotation_z, ToTensor
 from dataset import PointCloudData
 from model import PointNet
@@ -46,13 +46,13 @@ def attack(model, criterion, point, label, eps, pointcloud_form=False):
 if __name__ == '__main__':
     wandb.init(project="FGSM_Pointnet")
     parser = argparse.ArgumentParser(description="Performing fsgm on PointNet")
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument("--epsilon", type=float, default=0.01, help="Epsilon parameter for attacking the model")
+    parser.add_argument('--batch_size', type=int, default=256)
+    parser.add_argument("--epsilon", type=float, default=0.01, help="Epsilon paramter for attacking the model")
 
     args = parser.parse_args()
 
     path = Path("ModelNet40")
-    train_transforms = tt.Compose([
+    train_transforms = transforms.Compose([
                     PointSampler(1024),
                     Normalize(),
                     RandRotation_z(),
@@ -60,54 +60,44 @@ if __name__ == '__main__':
                     ToTensor()
                     ])
 
-    test_dataset = PointCloudData(path, True, "test", train_transforms)
-    model = PointNet()
+    test_dataset = PointCloudData(path, True, "test")
+    model = PointNet(classes=40)
     model = model.eval()
     model = model.to(device)
-    if(model.load_state_dict(torch.load("./modelnet40.pth"))):
-      print("Loaded pretrained weights")
-    fgsm_dataloader = DataLoader(test_dataset, 
-                                 batch_size=args.batch_size, 
-                                 shuffle=False,
-                                 num_workers=4)
+    model.load_state_dict(torch.load("./model.pth"))
+    fgsm_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     criterion = nn.NLLLoss()
     inv_classes = {i: cat for cat, i in test_dataset.classes.items()};
     print(inv_classes)
     
 
-    epsilon_list = [0]
-    for eps in epsilon_list:
-      args.epsilon = eps
-      total_targets = torch.zeros((0))
-      total_preds = torch.zeros((0))
-      total_accu = 0
-      total_data_no = 0
+    total_targets = torch.zeros((0))
+    total_preds = torch.zeros((0))
+    total_accu = 0
+    total_data_no = 0
+    args.epsilon = 0
 
-      print("Attacking the pointnet using FGSM with epsilon ", args.epsilon)
-      for i, data in enumerate(tqdm(fgsm_dataloader, position=0, leave=False)):
-          labels = data['category']
-          input_cloud = data['pointcloud']
-          input_cloud = input_cloud.type(torch.FloatTensor)
-          input_cloud = input_cloud.to(device)
-          labels = labels.to(device)
-          preds = attack(model, criterion, input_cloud, labels, eps=args.epsilon)
-          
-          acc = torch.sum(preds == labels) / preds.shape[0]
-          total_accu += acc.item() * preds.shape[0]
-          total_data_no += preds.shape[0]
-          print("Batch wise Accuarcy {0:.4f}".format(acc.item()*100))
-          total_preds = torch.cat([total_preds, preds.detach().cpu().squeeze()], dim=0)
-          total_targets = torch.cat([total_targets, labels.detach().cpu().squeeze()], dim=0)
-      
-      total_targets = total_targets.detach().cpu().numpy()
-      total_preds = total_preds.detach().cpu().numpy()
-      confus_mat = confusion_matrix(total_targets, total_preds)
-      recall_sco = recall_score(total_targets, total_preds, average=None)
-      precision_sco = precision_score(total_targets, total_preds, average=None)
-      
-
-      print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
-      plot_class_wise_scores(inv_classes, recall_sco, "recall scores")
-      plot_class_wise_scores(inv_classes, precision_sco, "precision scores")
-      wandb.log({"Accuracy": total_accu *100 / total_data_no,
-                 "epsilon": eps})
+    print("Attacking the pointnet using FGSM with epsilon ", args.epsilon)
+    for i, data in enumerate(tqdm(fgsm_dataloader, position=0, leave=False)):
+        labels = data['category']
+        input_cloud = data['pointcloud']
+        input_cloud = input_cloud.type(torch.FloatTensor)
+        input_cloud = input_cloud.to(device)
+        labels = labels.to(device)
+        preds = attack(model, criterion, input_cloud, labels, eps=args.epsilon)
+        
+        acc = torch.sum(preds == labels) / preds.shape[0]
+        total_accu += acc.item() * preds.shape[0]
+        total_data_no += preds.shape[0]
+        print("Batch wise Accuarcy {0:.4f}".format(acc.item()*100))
+        total_preds = torch.cat([total_preds, preds.detach().cpu().squeeze()], dim=0)
+        total_targets = torch.cat([total_targets, labels.detach().cpu().squeeze()], dim=0)
+    
+    total_targets = total_targets.detach().cpu().numpy()
+    total_preds = total_preds.detach().cpu().numpy()
+    confus_mat = confusion_matrix(total_targets, total_preds)
+    recall_sco = recall_score(total_targets, total_preds, average=None)
+    precision_sco = precision_score(total_targets, total_preds, average=None)
+    print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
+    plot_class_wise_scores(inv_classes, recall_sco, "recall scores")
+    plot_class_wise_scores(inv_classes, precision_sco, "precision scores")
