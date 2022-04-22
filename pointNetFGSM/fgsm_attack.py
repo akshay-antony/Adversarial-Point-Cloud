@@ -104,6 +104,8 @@ if __name__ == '__main__':
       confus_mat = confusion_matrix(total_targets, total_preds)
       recall_sco = recall_score(total_targets, total_preds, average=None)
       precision_sco = precision_score(total_targets, total_preds, average=None)
+      
+
       print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
       plot_class_wise_scores(inv_classes, recall_sco, "recall scores")
       plot_class_wise_scores(inv_classes, precision_sco, "precision scores")
