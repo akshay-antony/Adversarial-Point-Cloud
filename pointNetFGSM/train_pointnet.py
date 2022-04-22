@@ -13,11 +13,13 @@ import sklearn
 from sklearn.metrics import recall_score, precision_score, confusion_matrix
 from tqdm import tqdm
 from utils import plot_class_wise_scores
+import wandb
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 if __name__=="__main__":
     path = Path("ModelNet40")
+    wandb.init(project="Pointnet_ModelNet40")
     train_transforms = transforms.Compose([
                     PointSampler(1024),
                     Normalize(),
@@ -31,10 +33,15 @@ if __name__=="__main__":
     model = model.train()
     model = model.to(device)
     #model.load_state_dict(torch.load("./save.pth"))
-    fgsm_dataloader = DataLoader(test_dataset, batch_size=196, shuffle=True, num_workers=10)
+    fgsm_dataloader = DataLoader(test_dataset, batch_size=256, shuffle=True, num_workers=4)
     criterion = nn.NLLLoss()
     inv_classes = {i: cat for cat, i in test_dataset.classes.items()}
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    continue_training = True
+    
+    if continue_training:
+        model.load_state_dict(torch.load("./model.pth"))
+        optimizer.load_state_dict(torch.load("./opt.pth"))
 
     total_loss = 0
     total_accu = 0
@@ -62,10 +69,12 @@ if __name__=="__main__":
             pred = torch.argmax(outputs, dim=1)
             total_accu += torch.sum(pred == labels)
             loop.set_description(f'[{i}]/[{len(fgsm_dataloader)}], loss {round(total_loss/total_data_no, 2)}')
+            wandb.log({"loss": round(total_loss/total_data_no, 2)})
         
         torch.save(model.state_dict(), "model.pth")
         torch.save(optimizer.state_dict(), "opt.pth")
         print(f'Epoch [{j}]/[{epoch}], loss: {total_loss / total_data_no}, accuracy: {total_accu / total_data_no}')
+        wandb.log({"accuracy": total_accu/total_data_no})
         total_loss = 0
         total_data_no = 0
         total_accu = 0

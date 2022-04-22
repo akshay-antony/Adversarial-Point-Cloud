@@ -40,7 +40,7 @@ def attack(model, criterion, point, label, eps, pointcloud_form=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Performing fsgm on PointNet")
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument("--epsilon", type=float, default=0.01, help="Epsilon paramter for attacking the model")
 
     args = parser.parse_args()

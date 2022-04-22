@@ -20,6 +20,7 @@ class PointCloudData(Dataset):
                     sample['pcd_path'] = new_dir/file
                     sample['category'] = category
                     self.files.append(sample)
+        print("Data Loading Complete")
 
     def __len__(self):
         return len(self.files)
@@ -34,7 +35,6 @@ class PointCloudData(Dataset):
         pcd_path = self.files[idx]['pcd_path']
         category = self.files[idx]['category']
         with open(pcd_path, 'r') as f:
-            #print(pcd_path)
             pointcloud = self.__preproc__(f)
         return {'pointcloud': pointcloud, 
                 'category': self.classes[category]}
