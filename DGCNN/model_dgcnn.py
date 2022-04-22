@@ -1,17 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-@Author: Yue Wang
-@Contact: yuewangx@mit.edu
-@File: model.py
-@Time: 2018/10/13 6:35 PM
-
-Modified by 
-@Author: An Tao
-@Contact: ta19@mails.tsinghua.edu.cn
-@Time: 2020/3/9 9:32 PM
-"""
-
 
 import os
 import sys
