@@ -2,6 +2,8 @@ import torchvision.transforms as transforms
 from transforms import Normalize, PointSampler, ToTensor
 import matplotlib.pyplot as plt
 import numpy as np
+
+
 def read_off(file):
     off_header = file.readline().strip()
     if 'OFF' == off_header:
@@ -11,6 +13,7 @@ def read_off(file):
     verts = [[float(s) for s in file.readline().strip().split(' ')] for i_vert in range(n_verts)]
     faces = [[int(s) for s in file.readline().strip().split(' ')][1:] for i_face in range(n_faces)]
     return verts, faces
+
 
 def default_transforms():
     return transforms.Compose([

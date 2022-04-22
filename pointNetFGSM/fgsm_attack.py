@@ -1,8 +1,9 @@
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchvision import transforms
+import torchvision.transforms as transforms
 from transforms import Normalize, PointSampler, RandomNoise, RandRotation_z, ToTensor
 from dataset import PointCloudData
 from model import PointNet
@@ -13,11 +14,14 @@ import sklearn
 from sklearn.metrics import recall_score, precision_score, confusion_matrix
 from tqdm import tqdm
 from utils import plot_class_wise_scores
+import wandb
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def fgsm_attack(model, criterion, point, labels, eps) :
     point.requires_grad = True
+    #model = model.train()
     outputs, _, _= model(point.transpose(1,2))
     model.zero_grad()
     loss = criterion(outputs, labels)
@@ -27,6 +31,7 @@ def fgsm_attack(model, criterion, point, labels, eps) :
 
 def attack(model, criterion, point, label, eps, pointcloud_form=False):
   new_points = fgsm_attack(model, criterion, point, label, eps)
+  model = model.eval()
   outputs, __, __ = model(new_points.transpose(1,2))
   _, preds = torch.max(outputs.data, 1)
   if (pointcloud_form):
@@ -39,6 +44,7 @@ def attack(model, criterion, point, label, eps, pointcloud_form=False):
   return preds
 
 if __name__ == '__main__':
+    wandb.init(project="FGSM_Pointnet")
     parser = argparse.ArgumentParser(description="Performing fsgm on PointNet")
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument("--epsilon", type=float, default=0.01, help="Epsilon paramter for attacking the model")
@@ -62,6 +68,8 @@ if __name__ == '__main__':
     fgsm_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     criterion = nn.NLLLoss()
     inv_classes = {i: cat for cat, i in test_dataset.classes.items()};
+    print(inv_classes)
+    
 
     total_targets = torch.zeros((0))
     total_preds = torch.zeros((0))
