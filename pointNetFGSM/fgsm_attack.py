@@ -46,8 +46,8 @@ def attack(model, criterion, point, label, eps, pointcloud_form=False):
 if __name__ == '__main__':
     wandb.init(project="FGSM_Pointnet")
     parser = argparse.ArgumentParser(description="Performing fsgm on PointNet")
-    parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument("--epsilon", type=float, default=0.01, help="Epsilon paramter for attacking the model")
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument("--epsilon", type=float, default=0.00, help="Epsilon paramter for attacking the model")
 
     args = parser.parse_args()
 
@@ -71,33 +71,40 @@ if __name__ == '__main__':
     print(inv_classes)
     
 
-    total_targets = torch.zeros((0))
-    total_preds = torch.zeros((0))
-    total_accu = 0
-    total_data_no = 0
-    args.epsilon = 0
-
-    print("Attacking the pointnet using FGSM with epsilon ", args.epsilon)
-    for i, data in enumerate(tqdm(fgsm_dataloader, position=0, leave=False)):
-        labels = data['category']
-        input_cloud = data['pointcloud']
-        input_cloud = input_cloud.type(torch.FloatTensor)
-        input_cloud = input_cloud.to(device)
-        labels = labels.to(device)
-        preds = attack(model, criterion, input_cloud, labels, eps=args.epsilon)
-        
-        acc = torch.sum(preds == labels) / preds.shape[0]
-        total_accu += acc.item() * preds.shape[0]
-        total_data_no += preds.shape[0]
-        print("Batch wise Accuarcy {0:.4f}".format(acc.item()*100))
-        total_preds = torch.cat([total_preds, preds.detach().cpu().squeeze()], dim=0)
-        total_targets = torch.cat([total_targets, labels.detach().cpu().squeeze()], dim=0)
     
-    total_targets = total_targets.detach().cpu().numpy()
-    total_preds = total_preds.detach().cpu().numpy()
-    confus_mat = confusion_matrix(total_targets, total_preds)
-    recall_sco = recall_score(total_targets, total_preds, average=None)
-    precision_sco = precision_score(total_targets, total_preds, average=None)
-    print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
-    plot_class_wise_scores(inv_classes, recall_sco, "recall scores")
-    plot_class_wise_scores(inv_classes, precision_sco, "precision scores")
+    epsilon_list = [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1] 
+
+    for eps in epsilon_list:
+      total_targets = torch.zeros((0))
+      total_preds = torch.zeros((0))
+      total_accu = 0
+      total_data_no = 0
+      print("Attacking the pointnet using FGSM with epsilon ", eps)
+      loop = tqdm(enumerate(fgsm_dataloader),
+                  total=len(fgsm_dataloader),
+                  leave=False)
+      for i, data in loop:
+          labels = data['category']
+          input_cloud = data['pointcloud']
+          input_cloud = input_cloud.type(torch.FloatTensor)
+          input_cloud = input_cloud.to(device)
+          labels = labels.to(device)
+          preds = attack(model, criterion, input_cloud, labels, eps=eps)
+          
+          acc = torch.sum(preds == labels) / preds.shape[0]
+          total_accu += acc.item() * preds.shape[0]
+          total_data_no += preds.shape[0]
+          #print("Batch wise Accuarcy {0:.4f}".format(acc.item()*100))
+          loop.set_description(f'Batch wise accuracy {acc.item()}')
+          total_preds = torch.cat([total_preds, preds.detach().cpu().squeeze()], dim=0)
+          total_targets = torch.cat([total_targets, labels.detach().cpu().squeeze()], dim=0)
+      
+      total_targets = total_targets.detach().cpu().numpy()
+      total_preds = total_preds.detach().cpu().numpy()
+      confus_mat = confusion_matrix(total_targets, total_preds)
+      recall_sco = recall_score(total_targets, total_preds, average=None)
+      precision_sco = precision_score(total_targets, total_preds, average=None)
+      print("Accuracy: {0:.4f}".format(total_accu *100 / total_data_no))
+      wandb.log({"Accuracy vs Esilon": total_accu * 100 / total_data_no, "eps": eps})
+      plot_class_wise_scores(inv_classes, recall_sco, "recall scores", eps)
+      plot_class_wise_scores(inv_classes, precision_sco, "precision scores", eps)

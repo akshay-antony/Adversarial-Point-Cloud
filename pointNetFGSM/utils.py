@@ -22,7 +22,7 @@ def default_transforms():
                                 ToTensor()
                               ])
 
-def plot_class_wise_scores(class_names, scores, score_name):
+def plot_class_wise_scores(class_names, scores, score_name, eps):
     fig, ax = plt.subplots(1,1)
     x_axis = np.arange(scores.shape[0])
     for i in range(scores.shape[0]):
@@ -30,7 +30,9 @@ def plot_class_wise_scores(class_names, scores, score_name):
     ax.set_xlabel("class number")
     ax.set_ylabel(score_name)
     plt.legend(loc=(1.04,0))
-    plt.show()
+    plt.savefig(score_name + str(eps) + '.png')
+    #plt.show()
+    
 
 if __name__ == '__main__':
     pass
