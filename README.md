@@ -12,5 +12,7 @@ Run the python notebook ```pointnet_fgsm.ipynb```
 <figure>
   <img
   src="images/pointcloud.png"
+  <center>
   <figcaption>FGSM on with increasing epsilon values (0, 0.001, 0.01, 0.1, 0.5)</figcaption>
+  </center>
 </figure>
